@@ -55,7 +55,6 @@ def simulate(c, joueur, grille, depth=0):
         return Leaf(grille)
     else:
         # cas recursif
-
         # on cree un nouvel arbre
         N = Node(grille)
         # on effectue le premier coup
@@ -65,7 +64,6 @@ def simulate(c, joueur, grille, depth=0):
         else:
             copied = copy(grille)
             deplacement_simple(c[1], c[2], c[3], c[4], joueur, copied)
-
         # on calcul recursivement les reponses de l'adversaire
         cpc, cpd = liste_coups_possibles(copied, int(not joueur))
         for (x1, y1, x2, y2) in cpc:
