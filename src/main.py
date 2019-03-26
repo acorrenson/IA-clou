@@ -245,10 +245,10 @@ def fin_partie(grille):
     nbr_bloque0, nbr_bloque1 = compter_pions_bloques(grille)
 
     if nbr_pions0 < 2 or nbr_bloque0 == nbr_pions0:
-        print("joueur " + pion(1) + " gagne")
+        # print("joueur " + pion(1) + " gagne")
         return True
     elif nbr_pions1 < 2 or nbr_bloque1 == nbr_pions1:
-        print("joueur " + pion(0) + " gagne")
+        # print("joueur " + pion(0) + " gagne")
         return True
 
     return False
@@ -376,7 +376,7 @@ def liste_captures(x, y, joueur, grille):
         if est_capture(x, y, x+2, y, joueur, grille):
             liste.append((x, y, x+2, y))
     if est_dans_grille(x-2, y, grille):
-        if est_capture(x, x, x-2, y, joueur, grille):
+        if est_capture(x, y, x-2, y, joueur, grille):
             liste.append((x, y, x-2, y))
     if est_dans_grille(x, y-2, grille):
         if est_capture(x, y, x, y-2, joueur, grille):

@@ -12,9 +12,11 @@ class Node:
     """
     @brief      Class for Node.
     """
-    def __init__(self, val):
+    def __init__(self, val, coup=None):
         self.value = val
         self.children = []
+        self.coup = coup
+        self.score
 
     def get_children(self):
         return self.children
@@ -23,8 +25,9 @@ class Leaf:
     """
     @brief      Class for Leaf.
     """
-    def __init__(self, val):
+    def __init__(self, val, coup=None):
         self.value = val
+        self.coup = coup
 
 ### Utilitaires
 
@@ -77,6 +80,93 @@ def simulate(c, joueur, grille, depth=0):
 
         return N
 
+### MINMAX
+
+MDEP = 6
+IA = 0
+EN = 1
+
+def value(grille, depth, joueur):
+    if not fin_partie(grille):
+        return 0
+    else:
+        if joueur == EN:
+            return 1000 - depth
+        else:
+            return -1000 + depth
+
+
+def Max(coup, grille, depth=0):
+    grille = copy(grille)
+    if depth >= MDEP or fin_partie(grille):
+        return value(grille, depth, EN)
+    else:
+        type_coup, x1, y1, x2, y2 = coup
+        if type_coup == 0:
+            if not deplacement_capture(x1, y1, x2, y2, IA, grille):
+                raise Exception('err')
+        else:
+            if not deplacement_simple(x1, y1, x2, y2, IA, grille):
+                raise Exception('err')
+
+        coups_possibles = liste_coups_possibles(grille, EN)
+        captures, deplacements = coups_possibles
+
+        if coups_possibles == ([], []):
+            return value(grille, depth, EN)
+
+        max_val = 0
+
+        for (x1, y1, x2, y2) in captures:
+            copied = copy(grille)
+            m = Min((0, x1, y1, x2, y2), copied, depth+1)
+            if m > max_val:
+                max_val = m
+        
+        for (x1, y1, x2, y2) in deplacements:
+            copied = copy(grille)
+            m = Min((1, x1, y1, x2, y2), copied, depth+1)
+            if m > max_val:
+                max_val = m
+
+        return max_val
+
+
+def Min(coup, grille, depth=0):
+    grille = copy(grille)
+    if depth >= MDEP or fin_partie(grille):
+        return value(grille, depth, IA)
+    else:
+        type_coup, x1, y1, x2, y2 = coup
+        if type_coup == 0:
+            if not deplacement_capture(x1, y1, x2, y2, EN, grille):
+                raise Exception('err')
+        else:
+            if not deplacement_simple(x1, y1, x2, y2, EN, grille):
+                raise Exception('err')
+        
+        coups_possibles = liste_coups_possibles(grille, IA)
+        captures, deplacements = coups_possibles
+
+        if coups_possibles == ([], []):
+            return value(grille, depth, IA)
+        
+        min_val = 1000
+
+        for (x1, y1, x2, y2) in captures:
+            copied = copy(grille)
+            m = Max((0, x1, y1, x2, y2), copied, depth+1)
+            if m < min_val:
+                min_val = m
+        
+        for (x1, y1, x2, y2) in deplacements:
+            copied = copy(grille)
+            m = Max((1, x1, y1, x2, y2), copied, depth+1)
+            if m < min_val:
+                min_val = m
+
+        return min_val
+
 ### Affichage
 
 def pprint(T, i = 0):
@@ -88,12 +178,20 @@ def pprint(T, i = 0):
         for c in T.get_children():
             pprint(c, i+1)
 
-IA = 0
-grille = grille_debut_partie()
-N = Node(grille)
+grille = [
+    ['O', ' ', 'X', 'O'],
+    ['X', 'X', 'X', 'X'],
+    [' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' '],
+]
+
 cpc, cps = liste_coups_possibles(grille, IA)
 
-N = simulate((0, cpc[0][0], cpc[0][1], cpc[0][2], cpc[0][3]), IA, grille)
+for c in cpc: 
+    x1, y1, x2, y2 = c
+    print(Max((0, x1, y1, x2, y2), grille))
 
-pprint(N)
+for c in cps:
+    x1, y1, x2, y2 = c
+    print(Max((1, x1, y1, x2, y2), grille))
 
