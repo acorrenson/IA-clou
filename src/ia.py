@@ -126,6 +126,8 @@ grille = [
     [' ', ' ', ' ', ' '],
 ]
 
+grille = grille_debut_partie()
+
 cpc, cps = liste_coups_possibles(grille, IA)
 
 afficher_grille(grille)
