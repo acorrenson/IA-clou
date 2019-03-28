@@ -8,7 +8,7 @@ from main import *
 import time
 from multiprocessing import Process
 from multiprocessing import Pool
-
+import os
 
 ### Utilitaires
 
@@ -24,7 +24,7 @@ def copy(grille):
 
 ### MINMAX
 
-MDEP = 6
+MDEP = 7
 IA = 0
 EN = 1
 
@@ -39,16 +39,11 @@ def value(grille, depth, joueur):
     @return     Le Score
     """
     if not fin_partie(grille):
-        j0, j1 = compter_nombre_pions(grille)
-        return (j0-j1)
+        return 0
     else:
-        if joueur == EN:
-            # si le joueur en cours est l'adversaire de l'IA
-            # et que la partie est finie, alors l'IA gagne
+        if joueur == gagnant(grille):
             return 1000 - depth
         else:
-            # si le joueur en cours est l'IA
-            # et que la partie est finie, alors l'adversaire gagne
             return -1000 + depth
 
 
@@ -125,41 +120,40 @@ def minmax_ab(grille, joueur, A, B, depth=0):
     if fin_partie(grille) or depth >= MDEP:
         return value(grille, depth, joueur)
     else:
-        Beta = B
-        Alpha = A
-        cpc, cpd = liste_coups_possibles(grille, IA)
         if joueur == IA:
+            cpc, cpd = liste_coups_possibles(grille, EN)
             for c in cpc:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
-                deplacement_capture(x1, y1, x2, y2, IA, cp)
-                Alpha = max(Alpha, minmax_ab(cp, EN, Alpha, Beta, depth+1))
-                if Alpha >= Beta:
-                    return Beta
+                assert deplacement_capture(x1, y1, x2, y2, EN, cp)
+                B = min(B, minmax_ab(cp, EN, A, B, depth+1))
+                if A >= B:
+                    return A
             for c in cpd:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
-                deplacement_capture(x1, y1, x2, y2, IA, cp)
-                Alpha = max(Alpha, minmax_ab(cp, EN, Alpha, Beta, depth+1))
-                if Alpha >= Beta:
-                    return Beta
-            return Alpha
+                assert deplacement_simple(x1, y1, x2, y2, EN, cp)
+                B = min(B, minmax_ab(cp, EN, A, B, depth+1))
+                if A >= B:
+                    return A
+            return B
         else:
+            cpc, cpd = liste_coups_possibles(grille, IA)
             for c in cpc:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
-                deplacement_simple(x1, y1, x2, y2, IA, cp)
-                Beta = min(Alpha, minmax_ab(cp, EN, Alpha, Beta, depth+1))
-                if Alpha >= Beta:
-                    return Alpha
+                assert deplacement_capture(x1, y1, x2, y2, IA, cp)
+                A = max(A, minmax_ab(cp, IA, A, B, depth+1))
+                if A >= B:
+                    return B
             for c in cpd:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
-                deplacement_simple(x1, y1, x2, y2, IA, cp)
-                Beta = min(Alpha, minmax_ab(cp, EN, Alpha, Beta, depth+1))
-                if Alpha >= Beta:
-                    return Alpha
-            return Beta
+                assert deplacement_simple(x1, y1, x2, y2, IA, cp)
+                A = max(A, minmax_ab(cp, IA, A, B, depth+1))
+                if A >= B:
+                    return B
+            return A
 
 
 def run():
@@ -193,7 +187,6 @@ def run():
     print('Time :')
     print(time.time() - debut)
 
-
 def job(t):
     coup, grille = t
     cp = copy(grille)
@@ -201,7 +194,6 @@ def job(t):
     deplacement_capture(x1, y1, x2, y2, IA, cp)
     score = Min(cp)
     return score
-
 
 def test():
     grille = grille_debut_partie()
@@ -217,25 +209,17 @@ def test():
     
 
 
-grille = [
-    ['O', 'X', ' ', 'O'],
-    ['X', 'X', 'X', 'X'],
-    [' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' '],
-]
-
-
 def tour_ia_boost(grille, joueur):
-    
-    cpc, cps = liste_coups_possibles(grille, IA)
+    cpc, cps = liste_coups_possibles(grille, joueur)
     meilleur_coup = None
-    meilleur_score = 0
+    meilleur_score = -1000
 
     for c in cpc:
         cp = copy(grille)
         x1, y1, x2, y2 = c
-        deplacement_capture(x1, y1, x2, y2, IA, cp)
-        score =  minmax_ab(cp, EN, -1234, 1234)
+        assert deplacement_capture(x1, y1, x2, y2, joueur, cp)
+        score =  minmax_ab(cp, joueur, -1000, 1000)
+        # print(score, c)
         if score > meilleur_score:
             meilleur_score = score
             meilleur_coup = c
@@ -243,31 +227,42 @@ def tour_ia_boost(grille, joueur):
     for c in cps:
         cp = copy(grille)
         x1, y1, x2, y2 = c
-        deplacement_simple(x1, y1, x2, y2, IA, cp)
-        score =  minmax_ab(cp, EN, -1234, 1234)
+        assert deplacement_simple(x1, y1, x2, y2, joueur, cp)
+        score =  minmax_ab(cp, joueur, -1000, 1000)
+    #    print(score, c)
         if score > meilleur_score:
             meilleur_score = score
             meilleur_coup = c
 
-    if meilleur_coup is None:
-        if cpc != []:
-            meilleur_coup = cpc[0]
-        else:
-            meilleur_coup = cps[0]
-
-    print(meilleur_coup, meilleur_score)
+    # print(meilleur_coup, meilleur_score)
     
     x1, y1, x2, y2 = meilleur_coup
-    if deplacement_capture(x1, y1, x2, y2, IA, grille):
-        print('blop')
-    else:
-        deplacement_simple(x1, y1, x2, y2, IA, grille)
+    
+    if not deplacement_capture(x1, y1, x2, y2, joueur, grille):
+        deplacement_simple(x1, y1, x2, y2, joueur, grille)
 
-mode_jeu = 1
+grille = [
+    ['O', 'X', ' ', 'O'],
+    [' ', 'X', 'X', 'X'],
+    [' ', ' ', 'X', ' '],
+    [' ', ' ', 'O', ' '],
+]
 
-while not fin_partie(grille):
-    if mode_jeu == 1:
-        tour_ia_boost(grille, IA)
-    else:
-        tour_de_jeu(grille, IA)
-    tour_de_jeu(grille, EN)
+for P in range(0, 50):
+    grille = grille_debut_partie()
+    mode_jeu = 1
+    jeu = True
+    joueur = random.randint(0, 1)
+
+    while not fin_partie(grille):
+        if joueur == IA:
+            if mode_jeu == 1:
+                tour_ia_boost(grille, IA)
+            else:
+                tour_de_jeu(grille, IA)
+            joueur = EN
+        else:
+            tour_ia(grille, EN)
+            joueur = IA
+
+    print('VIctoire :', pion(gagnant(grille)))
