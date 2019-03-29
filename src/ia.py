@@ -24,7 +24,7 @@ def copy(grille):
 
 ### MINMAX
 
-MDEP = 7
+MDEP = 8
 IA = 0
 EN = 1
 
@@ -116,8 +116,8 @@ def Max(grille, depth=0):
         return max_val
 
 
-def minmax_ab(grille, joueur, A, B, depth=0):
-    if fin_partie(grille) or depth >= MDEP:
+def minmax_ab(grille, joueur, A, B, depth=0, mdep=MDEP):
+    if fin_partie(grille) or depth >= mdep:
         return value(grille, depth, joueur)
     else:
         if joueur == IA:
@@ -126,14 +126,14 @@ def minmax_ab(grille, joueur, A, B, depth=0):
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
                 assert deplacement_capture(x1, y1, x2, y2, EN, cp)
-                B = min(B, minmax_ab(cp, EN, A, B, depth+1))
+                B = min(B, minmax_ab(cp, EN, A, B, depth+1, mdep))
                 if A >= B:
                     return A
             for c in cpd:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
                 assert deplacement_simple(x1, y1, x2, y2, EN, cp)
-                B = min(B, minmax_ab(cp, EN, A, B, depth+1))
+                B = min(B, minmax_ab(cp, EN, A, B, depth+1, mdep))
                 if A >= B:
                     return A
             return B
@@ -143,14 +143,14 @@ def minmax_ab(grille, joueur, A, B, depth=0):
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
                 assert deplacement_capture(x1, y1, x2, y2, IA, cp)
-                A = max(A, minmax_ab(cp, IA, A, B, depth+1))
+                A = max(A, minmax_ab(cp, IA, A, B, depth+1, mdep))
                 if A >= B:
                     return B
             for c in cpd:
                 cp = copy(grille)
                 x1, y1, x2, y2 = c
                 assert deplacement_simple(x1, y1, x2, y2, IA, cp)
-                A = max(A, minmax_ab(cp, IA, A, B, depth+1))
+                A = max(A, minmax_ab(cp, IA, A, B, depth+1, mdep))
                 if A >= B:
                     return B
             return A
@@ -167,7 +167,6 @@ def run():
         cp = copy(grille)
         x1, y1, x2, y2 = c
         deplacement_capture(x1, y1, x2, y2, IA, cp)
-
         score =  Min(cp)
         if score > meilleur_score:
             meilleur_score = score
@@ -187,56 +186,54 @@ def run():
     print('Time :')
     print(time.time() - debut)
 
-def job(t):
-    coup, grille = t
+
+def job(coup, grille):
     cp = copy(grille)
     x1, y1, x2, y2 = coup
-    deplacement_capture(x1, y1, x2, y2, IA, cp)
-    score = Min(cp)
+    if not deplacement_capture(x1, y1, x2, y2, IA, cp):
+        deplacement_simple(x1, y1, x2, y2, IA, cp)
+    score = minmax_ab(cp, IA, -1000, 1000)
     return score
 
-def test():
-    grille = grille_debut_partie()
-    cpc, cps = liste_coups_possibles(grille, IA)
-    meilleur_coup = None
-    meilleur_score = 0
-    debut = time.time()
-    
-    p = Pool(processes=50)
-    
-    print(p.map(job, zip(cpc, [grille for i in range(len(cpc))])))
-    print(p.map(job, zip(cpc, [grille for i in range(len(cps))])))
-    
 
-
-def tour_ia_boost(grille, joueur):
+def run_parallel(grille, joueur=IA):
     cpc, cps = liste_coups_possibles(grille, joueur)
     meilleur_coup = None
     meilleur_score = -1000
 
-    for c in cpc:
-        cp = copy(grille)
-        x1, y1, x2, y2 = c
-        assert deplacement_capture(x1, y1, x2, y2, joueur, cp)
-        score =  minmax_ab(cp, joueur, -1000, 1000)
-        # print(score, c)
-        if score > meilleur_score:
-            meilleur_score = score
-            meilleur_coup = c
-
-    for c in cps:
-        cp = copy(grille)
-        x1, y1, x2, y2 = c
-        assert deplacement_simple(x1, y1, x2, y2, joueur, cp)
-        score =  minmax_ab(cp, joueur, -1000, 1000)
-    #    print(score, c)
-        if score > meilleur_score:
-            meilleur_score = score
-            meilleur_coup = c
-
-    # print(meilleur_coup, meilleur_score)
+    debut = time.time()
     
-    x1, y1, x2, y2 = meilleur_coup
+    p = Pool(processes=50)
+    
+    a = p.starmap(job, zip(cpc, [grille for i in range(len(cpc))]))
+    b = p.starmap(job, zip(cps, [grille for i in range(len(cps))]))
+
+    # print('Found the best play : ', get_max(cpc, cps, a, b))
+    # print('In ', time.time() - debut, 's with depth', MDEP)
+    p.close()
+    return get_max(cpc, cps, a, b)
+
+
+def get_max(cpc, cpd, scpc, scpd):
+    if cpc == []:
+        return cpd[scpd.index(max(scpd))]
+    if cpd == []:
+        return cpc[scpc.index(max(scpc))]
+
+    m1 = max(scpc)
+    m2 = max(scpd)
+
+    m = max(m1, m2)
+
+    if m == m1:
+        return cpc[scpc.index(m)]
+    else:
+        return cpd[scpd.index(m)]
+
+
+
+def tour_ia_minmaxab(grille, joueur, depth=MDEP):
+    x1, y1, x2, y2 = run_parallel(grille, joueur)
     
     if not deplacement_capture(x1, y1, x2, y2, joueur, grille):
         deplacement_simple(x1, y1, x2, y2, joueur, grille)
@@ -248,21 +245,40 @@ grille = [
     [' ', ' ', 'O', ' '],
 ]
 
-for P in range(0, 50):
-    grille = grille_debut_partie()
-    mode_jeu = 1
-    jeu = True
-    joueur = random.randint(0, 1)
+def IAvsIA(n):
+    for P in range(0, n):
+        grille = grille_debut_partie()
+        mode_jeu = 0
+        jeu = True
+        joueur = EN
+
+        while not fin_partie(grille):
+            os.system('clear')
+            afficher_grille(grille)
+            if joueur == IA:
+                tour_ia_minmaxab(grille, IA)
+                joueur = EN
+            else:
+                tour_ia(grille, EN)
+                joueur = IA
+
+        print('VIctoire :', pion(gagnant(grille)))
+
+
+def PlvsIA():
+    grille = grille_milieu_partie()
+    joueur = EN
 
     while not fin_partie(grille):
         if joueur == IA:
-            if mode_jeu == 1:
-                tour_ia_boost(grille, IA)
-            else:
-                tour_de_jeu(grille, IA)
+            afficher_grille(grille)
+            tour_ia_minmaxab(grille, IA)
             joueur = EN
         else:
-            tour_ia(grille, EN)
+            os.system('clear')
+            tour_de_jeu(grille, EN)
             joueur = IA
 
     print('VIctoire :', pion(gagnant(grille)))
+
+IAvsIA(1)
