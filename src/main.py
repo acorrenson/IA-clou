@@ -420,9 +420,18 @@ def tour_ia(grille, joueur):
         deplacement_capture(x1, y1, x2, y2, joueur, grille)
     else:
         choix = random.randint(0, len(deplacements)-1)
-        x1, y1, x2, y2 = captures[choix]
+        x1, y1, x2, y2 = deplacements[choix]
         deplacement_simple(x1, y1, x2, y2, joueur, grille)
 
+
+def gagnant(grille):
+    nbr_pions0, nbr_pions1 = compter_nombre_pions(grille)
+    nbr_bloque0, nbr_bloque1 = compter_pions_bloques(grille)
+
+    if nbr_pions0 < 2 or nbr_bloque0 == nbr_pions0:
+        return 1
+    elif nbr_pions1 < 2 or nbr_bloque1 == nbr_pions1:
+        return 0
 
 #### Programme principal
 
