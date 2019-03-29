@@ -39,7 +39,8 @@ def value(grille, depth, joueur):
     @return     Le Score
     """
     if not fin_partie(grille):
-        return 0
+        p = compter_nombre_pions(grille)
+        return p[joueur]*1000/8 - p[int(not joueur)]*1000/8
     else:
         if joueur == gagnant(grille):
             return 1000 - depth
@@ -267,7 +268,7 @@ def IAvsIA(n):
 
 def PlvsIA():
     grille = grille_milieu_partie()
-    joueur = EN
+    joueur = IA
 
     while not fin_partie(grille):
         if joueur == IA:
@@ -281,4 +282,4 @@ def PlvsIA():
 
     print('VIctoire :', pion(gagnant(grille)))
 
-IAvsIA(1)
+PlvsIA()
