@@ -254,8 +254,8 @@ def IAvsIA(n):
         joueur = EN
 
         while not fin_partie(grille):
-            os.system('clear')
-            afficher_grille(grille)
+            # os.system('clear')
+            # afficher_grille(grille)
             if joueur == IA:
                 tour_ia_minmaxab(grille, IA)
                 joueur = EN
@@ -282,4 +282,4 @@ def PlvsIA():
 
     print('VIctoire :', pion(gagnant(grille)))
 
-PlvsIA()
+IAvsIA(10)
