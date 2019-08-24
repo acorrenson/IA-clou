@@ -24,7 +24,7 @@ def copy(grille):
 
 ### MINMAX
 
-MDEP = 8
+MDEP = 4
 IA = 0
 EN = 1
 
@@ -282,4 +282,30 @@ def PlvsIA():
 
     print('VIctoire :', pion(gagnant(grille)))
 
-IAvsIA(10)
+
+def server(n):
+    Victoires = 0
+    global MDEP
+    print("Tests for IA Naive VS IA MinMax ab : ")
+    for P in range(0, n):
+        grille = grille_debut_partie()
+        mode_jeu = 0
+        jeu = True
+        joueur = EN
+
+        while not fin_partie(grille):
+            # os.system('clear')
+            # afficher_grille(grille)
+            if joueur == IA:
+                tour_ia_minmaxab(grille, IA)
+                joueur = EN
+            else:
+                tour_ia(grille, EN)
+                joueur = IA
+
+        if pion(gagnant(grille)) == 'X':
+            Victoires+=1;
+
+    print("Nombres de Victoires de X en profondeur {m} {v}/{n}".format(m=MDEP, v=Victoires, n=n))
+
+server(10)
